@@ -4,7 +4,6 @@ Ek lightweight, responsive, aur modern note-taking application jo Kotlin aur And
 
 ## Key Features
 - **Responsive Design:** Tablet par sidebar view aur phone par compact view (Programmatic UI).
-- **Rich Text Formatting:** Bold, Italic, aur Underline support using Spannable strings.
 - **Backup & Restore:** Locally notes ko export (txt) aur import karne ki suvidha (Available in Settings).
 - **Modern Dark UI:** Minimalist, sleek, aur dark-theme design.
 - **Undo/Redo:** Typing mistakes ko sudharne ke liye history support.
