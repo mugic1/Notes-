@@ -7,7 +7,7 @@ Ek lightweight, responsive, aur modern note-taking application jo Kotlin aur And
 - **Backup & Restore:** Locally notes ko export (txt) aur import karne ki suvidha (Available in Settings).
 - **Modern Dark UI:** Minimalist, sleek, aur dark-theme design.
 - **Undo/Redo:** Typing mistakes ko sudharne ke liye history support.
-- **Real-time Word Counter:** Note likhte waqt live count.
+- **Real-time Word Counter:** Note likhte waqt live count(may not work in phone).
 
 ## Tech Stack
 - **Language:** Kotlin
