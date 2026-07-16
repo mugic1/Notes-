@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Hidden Space Fixer</title>
+    <title>Multiple Hidden Space Fixer</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -25,7 +25,7 @@
             display: block;
         }
         button {
-            background-color: #007bff;
+            background-color: #28a745;
             color: white;
             border: none;
             padding: 10px 20px;
@@ -34,52 +34,54 @@
             font-size: 16px;
         }
         button:hover {
-            background-color: #0056b3;
+            background-color: #218838;
         }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>Fix Hidden Spaces (\u00A0)</h2>
-    <p>Apni Kotlin/Text file upload karein:</p>
-    <input type="file" id="fileInput" accept=".kt,.txt,.java">
-    <button onclick="processFile()">Fix & Download</button>
+    <h2>Fix Hidden Spaces (\u00A0) - Multiple Files</h2>
+    <p>Apni Kotlin/Text files ek saath select karein:</p>
+    <input type="file" id="fileInput" accept=".kt,.txt,.java" multiple>
+    <button onclick="processFiles()">Fix & Download All</button>
 </div>
 
 <script>
-function processFile() {
+function processFiles() {
     const fileInput = document.getElementById('fileInput');
     if (fileInput.files.length === 0) {
-        alert('Please select a file first!');
+        alert('Please select at least one file!');
         return;
     }
 
-    const file = fileInput.files[0];
-    const reader = new FileReader();
+    // Saari selected files par loop chalega
+    Array.from(fileInput.files).forEach(file => {
+        const reader = new FileReader();
 
-    reader.onload = function(e) {
-        const originalText = e.target.result;
-        
-        // Yeh line saare hidden non-breaking spaces ko normal space se replace karegi
-        const cleanedText = originalText.replace(/\u00A0/g, ' ');
+        reader.onload = function(e) {
+            const originalText = e.target.result;
+            
+            // Hidden non-breaking spaces ko normal space se replace kiya
+            const cleanedText = originalText.replace(/\u00A0/g, ' ');
 
-        // Nayi file download karne ka logic
-        const blob = new Blob([cleanedText], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const downloadLink = document.createElement('a');
-        
-        downloadLink.href = url;
-        downloadLink.download = 'fixed_' + file.name;
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        
-        // Cleanup
-        document.body.removeChild(downloadLink);
-        URL.revokeObjectURL(url);
-    };
+            // Nayi fixed file download karne ka logic
+            const blob = new Blob([cleanedText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const downloadLink = document.createElement('a');
+            
+            downloadLink.href = url;
+            downloadLink.download = 'fixed_' + file.name;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            
+            // Cleanup
+            document.body.removeChild(downloadLink);
+            URL.revokeObjectURL(url);
+        };
 
-    reader.readAsText(file);
+        reader.readAsText(file);
+    });
 }
 </script>
 
