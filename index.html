@@ -1,149 +1,1387 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Super Hidden Space Fixer</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DevCode Saver & Fixer Pro</title>
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#0ea5e9" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <!-- JSZip for ZIP export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js">
+    </script>
+
     <style>
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f0f2f5;
+        :root {
+            --bg-main: #0b0f19;
+            --bg-card: #151d30;
+            --border: #223150;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #0ea5e9;
+            --accent-hover: #0284c7;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
             margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
         }
-        .card {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            text-align: center;
-            width: 380px;
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            padding: 16px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
         }
-        .drop-zone {
-            border: 2px dashed #007bff;
-            padding: 40px 20px;
+
+        header {
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto 15px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(to right, #0ea5e9, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-pwa {
+            background: #1e293b;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 8px 14px;
+            font-size: 13px;
             border-radius: 8px;
-            background-color: #f8fbff;
             cursor: pointer;
-            margin: 20px 0;
-            transition: all 0.3s ease;
+            display: none;
         }
-        .drop-zone.drag-over {
-            background-color: #e1f0ff;
-            border-color: #0056b3;
-        }
-        button {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 6px;
+
+        .menu-toggle {
+            background: #1e293b;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            font-size: 20px;
+            padding: 8px 14px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 16px;
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Sidebar */
+        .sidebar-drawer {
+            position: fixed;
+            top: 0;
+            right: -350px;
+            width: 320px;
+            height: 100vh;
+            background: var(--bg-card);
+            border-left: 1px solid var(--border);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+        }
+
+        .sidebar-drawer.open {
+            right: 0;
+        }
+
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+            z-index: 999;
+            display: none;
+        }
+
+        .sidebar-overlay.show {
+            display: block;
+        }
+
+        /* Main layout */
+        .app-container {
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .workspace-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            flex: 1;
+        }
+
+        @media (min-width: 768px) {
+            .workspace-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        }
+
+        .editor-header {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .hint {
+            text-transform: none;
+            font-weight: normal;
+            color: var(--accent);
+            font-size: 11px;
+        }
+
+        input[type="text"],
+        select,
+        textarea {
+            background: #090d16;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-main);
+            padding: 12px 16px;
+            font-size: 15px;
+            outline: none;
             width: 100%;
         }
-        button:hover {
-            background-color: #218838;
+
+        input[type="text"]:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
         }
-        #status {
-            margin-top: 15px;
-            font-weight: bold;
-            color: #495057;
+
+        textarea {
+            flex: 1;
+            min-height: 450px;
+            font-family: 'Fira Code', 'JetBrains Mono', monospace;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            resize: vertical;
+        }
+
+        .preview-container {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: #ffffff;
+            overflow: hidden;
+            flex: 1;
+            min-height: 450px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-bar {
+            background: #090d16;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .preview-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            flex: 1;
+            border: none;
+            background: #fff;
+        }
+
+        .workspace-actions {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: auto;
+        }
+
+        @media (min-width: 640px) {
+            .workspace-actions {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-main {
+            background: var(--accent);
+            color: #fff;
+        }
+        .btn-main:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-upload-trigger {
+            background: #1e293b;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+        .btn-upload-trigger:hover {
+            background: #27354d;
+        }
+
+        .btn-clear {
+            background: #0f172a;
+            border: 1px solid var(--border);
+            color: #cbd5e1;
+        }
+        .btn-clear:hover {
+            background: #1e293b;
+            color: #fff;
+        }
+
+        .btn-bp {
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            color: #fff;
+        }
+        .btn-bp:hover {
+            opacity: 0.9;
+        }
+
+        /* Sidebar buttons */
+        .sidebar-actions {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .btn-sec {
+            background: #1e293b;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            width: 100%;
+            text-align: left;
+            justify-content: flex-start;
+        }
+        .btn-sec:hover {
+            background: #2d3d5a;
+        }
+
+        .btn-fixer {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #fff;
+            width: 100%;
+            text-align: left;
+            justify-content: flex-start;
+        }
+        .btn-fixer:hover {
+            opacity: 0.9;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            margin-top: 10px;
+            color: var(--text-main);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+        }
+
+        /* History */
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .history-item {
+            background: #090d16;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-info {
+            overflow: hidden;
+            padding-right: 10px;
+            cursor: pointer;
+            flex: 1;
+        }
+        .history-name {
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .history-tag {
+            font-size: 10px;
+            color: var(--accent);
+            background: rgba(14, 165, 233, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 6px;
+        }
+        .history-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .btn-icon {
+            padding: 8px;
+            border-radius: 8px;
+            width: auto;
+        }
+        .btn-dl-item {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+        .btn-dl-item:hover {
+            background: var(--success);
+            color: #fff;
+        }
+        .btn-del-item {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+        .btn-del-item:hover {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+            padding: 20px 0;
+        }
+
+        /* Toast */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1e293b;
+            border: 1px solid var(--border);
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 14px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 9999;
+        }
+        #toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+        .hidden-input {
+            display: none;
+        }
+
+        /* ===== FIXER MODAL ===== */
+        .fixer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .fixer-overlay.show {
+            display: flex;
+        }
+
+        .fixer-modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            max-width: 560px;
+            width: 100%;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            animation: modalPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+        }
+
+        @keyframes modalPop {
+            from {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .fixer-modal h2 {
+            font-size: 20px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .fixer-modal p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .fixer-close {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0 8px;
+        }
+        .fixer-close:hover {
+            color: var(--text-main);
+        }
+
+        .drop-zone-fixer {
+            border: 2px dashed var(--border);
+            border-radius: 14px;
+            padding: 40px 20px;
+            background: #090d16;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+            margin-bottom: 16px;
+        }
+
+        .drop-zone-fixer.drag-over {
+            border-color: var(--accent);
+            background: rgba(14, 165, 233, 0.08);
+            box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
+        }
+
+        .drop-zone-fixer .icon-big {
+            font-size: 40px;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .drop-zone-fixer .zone-text {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .drop-zone-fixer .zone-text strong {
+            color: var(--accent);
+        }
+
+        .fixer-file-list {
+            margin: 12px 0;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .fixer-file-item {
+            background: #090d16;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+
+        .fixer-file-item .name {
+            color: var(--text-main);
+        }
+        .fixer-file-item .size {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .fixer-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 6px;
+        }
+
+        .btn-fix {
+            background: var(--success);
+            color: #fff;
+        }
+        .btn-fix:hover {
+            background: #059669;
+        }
+
+        .btn-fix-cancel {
+            background: #1e293b;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+        .btn-fix-cancel:hover {
+            background: #2d3d5a;
+        }
+
+        .fixer-status {
+            margin-top: 14px;
+            text-align: center;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .fixer-status.done {
+            color: var(--success);
+        }
+        .fixer-status.error {
+            color: var(--danger);
+        }
+
+        /* scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-main);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent);
         }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>Hidden Space Fixer</h2>
-    <p>Files ko yahan drag karke drop karein ya box par click karke select karein.</p>
-    
-    <div class="drop-zone" id="dropZone">
-        <span id="dropZoneText">Drag & Drop files here or Click</span>
-        <input type="file" id="fileInput" accept=".kt,.txt,.java" multiple style="display: none;">
+    <!-- ===== HEADER ===== -->
+    <header>
+        <h1>DevCode Saver Pro</h1>
+        <div class="header-actions">
+            <button id="installApp" class="btn-pwa">📲 Install App</button>
+            <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+        </div>
+    </header>
+
+    <!-- ===== SIDEBAR OVERLAY ===== -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- ===== SIDEBAR DRAWER ===== -->
+    <div class="sidebar-drawer" id="sidebarDrawer">
+        <div class="section-title" style="margin-top:0;">Options &amp; Portability</div>
+        <div class="sidebar-actions">
+            <button class="btn-sec" onclick="createSnapshot()">📸 Snapshot</button>
+            <button class="btn-sec" onclick="exportBackup()">📤 Export Logs</button>
+            <button class="btn-sec" onclick="triggerImport()">📥 Import Logs</button>
+            <button class="btn-fixer" onclick="openFixer()">🧹 Fix Hidden Spaces</button>
+            <input type="file" id="fileInput" class="hidden-input" accept=".json" onchange="importBackup(event)" />
+        </div>
+
+        <div class="section-title">History Logs</div>
+        <div class="history-list" id="historyList"></div>
     </div>
-    
-    <button onclick="processFiles()">Fix & Download ZIP</button>
-    <div id="status">0 files selected</div>
-</div>
 
-<script>
-const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('fileInput');
-const statusDiv = document.getElementById('status');
-const dropZoneText = document.getElementById('dropZoneText');
-let selectedFiles = [];
+    <!-- ===== FIXER MODAL ===== -->
+    <div class="fixer-overlay" id="fixerOverlay" onclick="if(event.target===this) closeFixer()">
+        <div class="fixer-modal">
+            <button class="fixer-close" onclick="closeFixer()">✕</button>
+            <h2>🧹 Fix Hidden Spaces</h2>
+            <p>Drop <strong>.kt</strong>, <strong>.txt</strong>, <strong>.java</strong> or any text file. All non‑breaking spaces (<code>\u00A0</code>) will be replaced with normal spaces.</p>
 
-// Box par click karne se file picker khulega
-dropZone.addEventListener('click', () => fileInput.click());
+            <div class="drop-zone-fixer" id="dropZoneFixer">
+                <span class="icon-big">📂</span>
+                <div class="zone-text">
+                    <strong>Click</strong> to select files or <strong>drag &amp; drop</strong> here
+                </div>
+                <input type="file" id="fixerFileInput" accept=".kt,.txt,.java,.html,.css,.js,.json,.xml,.yaml,.md,.sh,.py,.cpp,.java,.cs,.go,.rs,.rb" multiple style="display:none;" />
+            </div>
 
-// File picker se files select hone par
-fileInput.addEventListener('change', (e) => {
-    selectedFiles = Array.from(e.target.files);
-    updateStatus();
-});
+            <div class="fixer-file-list" id="fixerFileList"></div>
 
-// Drag over effect
-dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('drag-over');
-});
+            <div class="fixer-actions">
+                <button class="btn-fix" onclick="processFixerFiles()">📦 Fix &amp; Download ZIP</button>
+                <button class="btn-fix-cancel" onclick="closeFixer()">Cancel</button>
+            </div>
 
-dropZone.addEventListener('dragleave', () => {
-    dropZone.classList.remove('drag-over');
-});
+            <div class="fixer-status" id="fixerStatus">0 files selected</div>
+        </div>
+    </div>
 
-// Files drop karne par
-dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('drag-over');
-    selectedFiles = Array.from(e.dataTransfer.files);
-    updateStatus();
-});
+    <!-- ===== MAIN APP ===== -->
+    <div class="app-container">
+        <div class="workspace-grid">
+            <!-- Editor Panel -->
+            <div class="panel">
+                <div class="editor-header">
+                    <div class="field-group">
+                        <label>File Name</label>
+                        <input type="text" id="filename" placeholder="Enter filename" value="index" />
+                    </div>
+                    <div class="field-group">
+                        <label>Extension / Language</label>
+                        <select id="extension"></select>
+                    </div>
+                </div>
+                <div class="field-group" style="flex:1;">
+                    <label>Code Canvas <span class="hint">Smart Auto-Indent Activated</span></label>
+                    <textarea id="codeEditor" placeholder="// Type HTML/CSS/JS code to preview... Or type '!' for HTML / 'main' for programming templates and press Enter/Tab"></textarea>
+                </div>
 
-function updateStatus() {
-    statusDiv.innerText = `${selectedFiles.length} file(s) selected`;
-    if(selectedFiles.length > 0) {
-        dropZoneText.innerText = "Files ready for fixing!";
-    }
-}
+                <div class="workspace-actions">
+                    <button class="btn-clear" onclick="clearWorkspace()">➕ New File</button>
+                    <button class="btn-upload-trigger" onclick="triggerFileToEdit()">📂 Open File</button>
+                    <input type="file" id="editFileInput" class="hidden-input" onchange="loadFileToEdit(event)" />
+                    <button class="btn-bp" onclick="insertBoilerplate()">✨ Boilerplate</button>
+                    <button class="btn-main" onclick="downloadFile()">⚡ Download Code</button>
+                </div>
+            </div>
 
-async function processFiles() {
-    if (selectedFiles.length === 0) {
-        alert('Pehle files drag ya select karein!');
-        return;
-    }
+            <!-- Preview Panel -->
+            <div class="panel">
+                <label style="margin-bottom:10px;">🎨 Live Preview Window</label>
+                <div class="preview-container">
+                    <div class="preview-bar">
+                        <div class="preview-dot"></div>
+                        <span id="previewStatus">Realtime Output Render</span>
+                    </div>
+                    <iframe id="livePreview"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    statusDiv.innerText = "Processing...";
-    const zip = new JSZip();
+    <!-- ===== TOAST ===== -->
+    <div id="toast"></div>
 
-    for (let i = 0; i < selectedFiles.length; i++) {
-        const file = selectedFiles[i];
-        const text = await file.text();
-        
-        // Non-breaking spaces ko normal space se replace kiya
-        const cleanedText = text.replace(/\u00A0/g, ' ');
-        
-        zip.file('fixed_' + file.name, cleanedText);
-    }
+    <script>
+        // ============================================================
+        //  1.  EXTENSIONS & SNIPPETS
+        // ============================================================
+        const extensions = {
+            "Web Ecosystem": { ".html": "HTML5", ".css": "CSS3", ".js": "JavaScript", ".ts": "TypeScript",
+                ".jsx": "React JS", ".tsx": "React TS", ".php": "PHP" },
+            "Backend & Systems": { ".py": "Python", ".java": "Java", ".cpp": "C++", ".c": "C Language",
+                ".cs": "C#", ".go": "Golang", ".rs": "Rust", ".rb": "Ruby" },
+            "Mobile Platforms": { ".kt": "Kotlin", ".swift": "Swift", ".dart": "Flutter/Dart" },
+            "Data & Structs": { ".json": "JSON Data", ".yaml": "YAML Config", ".xml": "XML", ".csv": "CSV Data",
+                ".sql": "SQL Query" },
+            "Shell & Docs": { ".txt": "Plain Text", ".md": "Markdown", ".sh": "Bash Script",
+            ".bat": "Windows Batch" }
+        };
 
-    zip.generateAsync({type: "blob"}).then(function(content) {
-        const url = URL.createObjectURL(content);
-        const downloadLink = document.createElement('a');
-        downloadLink.href = url;
-        downloadLink.download = "fixed_files.zip";
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        
-        document.body.removeChild(downloadLink);
-        URL.revokeObjectURL(url);
-        statusDiv.innerText = "Done! Check your downloads.";
-    });
-}
-</script>
+        const snippets = {
+            '.html': {
+                ext: '.html',
+                code: `<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Document</title>\n</head>\n<body>\n    <h1>Hello World</h1>\n</body>\n</html>`,
+                cursorTarget: '<body>\n    '
+            },
+            '.cpp': {
+                ext: '.cpp',
+                code: `#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello World!" << endl;\n    return 0;\n}`,
+                cursorTarget: 'int main() {\n    '
+            },
+            '.java': {
+                ext: '.java',
+                code: `public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello World");\n    }\n}`,
+                cursorTarget: 'main(String[] args) {\n        '
+            },
+            '.py': {
+                ext: '.py',
+                code: `def main():\n    print("Hello World")\n\nif __name__ == "__main__":\n    main()`,
+                cursorTarget: 'def main():\n    '
+            },
+            '.js': {
+                ext: '.js',
+                code: `// JavaScript Main Execution\nfunction main() {\n    console.log("Hello World");\n}\n\nmain();`,
+                cursorTarget: 'function main() {\n    '
+            }
+        };
+
+        // ============================================================
+        //  2.  STATE
+        // ============================================================
+        let historyData = [];
+        let fixerFiles = [];
+
+        // ============================================================
+        //  3.  ON LOAD
+        // ============================================================
+        window.onload = function() {
+            populateDropdown();
+            loadHistory();
+            setupSmartEditorEngine();
+            updatePreview();
+            setupFixerDropZone();
+        };
+
+        // ============================================================
+        //  4.  SIDEBAR
+        // ============================================================
+        function toggleSidebar() {
+            const drawer = document.getElementById('sidebarDrawer');
+            const overlay = document.getElementById('sidebarOverlay');
+            drawer.classList.toggle('open');
+            overlay.classList.toggle('show');
+        }
+
+        // ============================================================
+        //  5.  DROPDOWN
+        // ============================================================
+        function populateDropdown() {
+            const select = document.getElementById('extension');
+            select.innerHTML = "";
+            for (const [group, items] of Object.entries(extensions)) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = group;
+                for (const [val, name] of Object.entries(items)) {
+                    const opt = document.createElement('option');
+                    opt.value = val;
+                    opt.textContent = `${val} (${name})`;
+                    optgroup.appendChild(opt);
+                }
+                select.appendChild(optgroup);
+            }
+            select.value = ".html";
+            select.addEventListener('change', updatePreview);
+        }
+
+        function setDropdownExtension(ext) {
+            const select = document.getElementById('extension');
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].value === ext) {
+                    select.selectedIndex = i;
+                    return;
+                }
+            }
+            const newOpt = document.createElement('option');
+            newOpt.value = ext;
+            newOpt.textContent = `${ext} (Custom)`;
+            select.appendChild(newOpt);
+            select.value = ext;
+        }
+
+        // ============================================================
+        //  6.  TOAST
+        // ============================================================
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.borderLeft = `4px solid ${isError ? 'var(--danger)' : 'var(--success)'}`;
+            toast.classList.add('show');
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // ============================================================
+        //  7.  PREVIEW
+        // ============================================================
+        function updatePreview() {
+            const code = document.getElementById('codeEditor').value;
+            const ext = document.getElementById('extension').value;
+            const iframe = document.getElementById('livePreview');
+            const statusText = document.getElementById('previewStatus');
+
+            let targetContent = "";
+
+            if (ext === ".html") {
+                targetContent = code;
+                statusText.textContent = "Live Web Render Active";
+            } else if (ext === ".css") {
+                targetContent =
+                    `<style>${code}</style><div style='padding:20px;font-family:sans-serif;'><h3>CSS Sandbox Mode</h3><p>Design applied globally.</p></div>`;
+                statusText.textContent = "CSS Sandbox Active";
+            } else if (ext === ".js") {
+                targetContent =
+                    `<script>
+                            console.log = function(...args) {
+                                document.body.innerHTML += '<div style="font-family:monospace;padding:8px;border-bottom:1px solid #ddd;color:#1e293b;">⚡ [Console]: ' + args.join(' ') + '</div>';
+                            };
+                            window.onerror = function(msg, url, line) {
+                                document.body.innerHTML += '<div style="font-family:monospace;padding:8px;background:#fef2f2;color:#ef4444;">❌ Error: ' + msg + '</div>';
+                            };
+                            window.onload = function() { ${code} };
+                        <\/script><body><h4 style="font-family:sans-serif;margin:10px 0;color:#64748b;">Console Outputs:</h4></body>`;
+                statusText.textContent = "JS Runner Sandbox Active";
+            } else {
+                statusText.textContent = "Preview not supported for " + ext;
+                targetContent =
+                    `<div style="padding:20px;font-family:sans-serif;color:#64748b;"><h3>Preview Unavailable</h3><p>Live rendering is optimized specifically for web tracks (.html, .css, .js).</p></div>`;
+            }
+
+            const doc = iframe.contentDocument || iframe.contentWindow.document;
+            doc.open();
+            doc.write(targetContent);
+            doc.close();
+        }
+
+        // ============================================================
+        //  8.  BOILERPLATE
+        // ============================================================
+        function insertBoilerplate() {
+            const ext = document.getElementById('extension').value;
+            const editor = document.getElementById('codeEditor');
+
+            if (snippets[ext]) {
+                editor.value = snippets[ext].code;
+                const snippetIndex = snippets[ext].code.indexOf(snippets[ext].cursorTarget);
+                const newCursorPos = snippetIndex + snippets[ext].cursorTarget.length;
+                editor.focus();
+                editor.setSelectionRange(newCursorPos, newCursorPos);
+                updatePreview();
+                showToast(`${ext.toUpperCase()} Boilerplate loaded!`);
+            } else {
+                showToast(`No boilerplate template configured for ${ext}`, true);
+            }
+        }
+
+        // ============================================================
+        //  9.  CLEAR
+        // ============================================================
+        function clearWorkspace() {
+            if (document.getElementById('codeEditor').value.trim() && !confirm("Kya aap canvas reset karna chahte hain?"))
+                return;
+            document.getElementById('codeEditor').value = "";
+            document.getElementById('filename').value = "my_code";
+            document.getElementById('extension').value = ".html";
+            updatePreview();
+            showToast("Workspace cleared!");
+        }
+
+        // ============================================================
+        //  10. SMART EDITOR ENGINE
+        // ============================================================
+        function setupSmartEditorEngine() {
+            const editor = document.getElementById('codeEditor');
+            const select = document.getElementById('extension');
+
+            editor.addEventListener('input', updatePreview);
+
+            editor.addEventListener('keydown', function(e) {
+                const pos = editor.selectionStart;
+                const text = editor.value;
+                const textUpToCursor = text.substring(0, pos);
+                const lines = textUpToCursor.split('\n');
+                const currentLine = lines[lines.length - 1];
+
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const indentSpacesMatch = currentLine.match(/^([ \t]*)/);
+                    let currentIndent = indentSpacesMatch ? indentSpacesMatch[1] : "";
+                    const lastChar = currentLine.trim().slice(-1);
+                    const nextChar = text.substring(pos, pos + 1);
+                    const openHtmlTagMatch = currentLine.match(/<([a-zA-Z1-6]+)[^>]*>$/);
+
+                    if ((lastChar === '{' && nextChar === '}') || (openHtmlTagMatch && nextChar === '<')) {
+                        const structuralIndent = currentIndent + "    ";
+                        editor.value = text.substring(0, pos) + "\n" + structuralIndent + "\n" + currentIndent + text
+                            .substring(pos);
+                        const targetedSelection = pos + 1 + structuralIndent.length;
+                        editor.setSelectionRange(targetedSelection, targetedSelection);
+                        updatePreview();
+                        return;
+                    }
+
+                    if (lastChar === '{' || lastChar === ':' || openHtmlTagMatch) {
+                        currentIndent += "    ";
+                    }
+
+                    editor.value = text.substring(0, pos) + "\n" + currentIndent + text.substring(pos);
+                    const standardTarget = pos + 1 + currentIndent.length;
+                    editor.setSelectionRange(standardTarget, standardTarget);
+                    updatePreview();
+                    return;
+                }
+
+                const closingChars = ['}', ')', ']', '"', "'", '`'];
+                if (closingChars.includes(e.key)) {
+                    if (text.substring(pos, pos + 1) === e.key) {
+                        e.preventDefault();
+                        editor.setSelectionRange(pos + 1, pos + 1);
+                        return;
+                    }
+                }
+
+                const pairs = { '{': '}', '(': ')', '[': ']', '"': '"', "'": "'", '`': '`' };
+                if (pairs[e.key] !== undefined) {
+                    e.preventDefault();
+                    const closeChar = pairs[e.key];
+                    const end = editor.selectionEnd;
+                    const selectedText = text.substring(pos, end);
+                    editor.value = text.substring(0, pos) + e.key + selectedText + closeChar + text.substring(end);
+                    editor.setSelectionRange(pos + 1, pos + 1 + selectedText.length);
+                    updatePreview();
+                    return;
+                }
+
+                if (e.key === '>') {
+                    const tagMatch = currentLine.match(/<([a-zA-Z1-6]+)(?:\s+[^>]*)*$/);
+                    if (tagMatch) {
+                        e.preventDefault();
+                        const tagName = tagMatch[1];
+                        const selfClosingTags = ['img', 'br', 'hr', 'input', 'link', 'meta', 'source', 'embed'];
+                        if (selfClosingTags.includes(tagName.toLowerCase())) {
+                            editor.value = textUpToCursor + '>' + text.substring(pos);
+                            editor.setSelectionRange(pos + 1, pos + 1);
+                        } else {
+                            editor.value = textUpToCursor + `></${tagName}>` + text.substring(pos);
+                            editor.setSelectionRange(pos + 1, pos + 1);
+                        }
+                        updatePreview();
+                        return;
+                    }
+                }
+
+                const isEnter = (e.key === 'Enter' || e.keyCode === 13);
+                const isTab = (e.key === 'Tab' || e.keyCode === 9);
+
+                if (isEnter || isTab) {
+                    let targetSnippet = null;
+                    let matchedTriggerLength = 0;
+                    const htmlMatch = currentLine.match(/!\s*$/);
+                    const mainMatch = currentLine.match(/main\s*$/i);
+
+                    if (htmlMatch) {
+                        targetSnippet = snippets['.html'];
+                        matchedTriggerLength = htmlMatch[0].length;
+                    } else if (mainMatch) {
+                        matchedTriggerLength = mainMatch[0].length;
+                        const currentExt = select.value;
+                        if (currentExt === '.py') targetSnippet = snippets['.py'];
+                        else if (['.js', '.ts', '.jsx', '.tsx'].includes(currentExt)) targetSnippet = snippets[
+                        '.js'];
+                        else if (currentExt === '.java') targetSnippet = snippets['.java'];
+                        else targetSnippet = snippets['.cpp'];
+                    }
+
+                    if (targetSnippet && matchedTriggerLength > 0) {
+                        e.preventDefault();
+                        select.value = targetSnippet.ext;
+                        const startText = text.substring(0, pos - matchedTriggerLength);
+                        const endText = text.substring(pos);
+                        editor.value = startText + targetSnippet.code + endText;
+                        const snippetIndex = targetSnippet.code.indexOf(targetSnippet.cursorTarget);
+                        const newCursorPos = startText.length + snippetIndex + targetSnippet.cursorTarget.length;
+                        editor.setSelectionRange(newCursorPos, newCursorPos);
+                        updatePreview();
+                        showToast(`${targetSnippet.ext.toUpperCase()} Boilerplate expanded!`);
+                        return;
+                    }
+
+                    if (isTab) {
+                        e.preventDefault();
+                        const startText = text.substring(0, pos);
+                        const endText = text.substring(editor.selectionEnd);
+                        editor.value = startText + "    " + endText;
+                        editor.setSelectionRange(pos + 4, pos + 4);
+                    }
+                }
+            });
+        }
+
+        // ============================================================
+        //  11. FILE OPEN / LOAD
+        // ============================================================
+        function triggerFileToEdit() { document.getElementById('editFileInput').click(); }
+
+        function loadFileToEdit(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const lastDotIndex = file.name.lastIndexOf('.');
+            let filename = file.name;
+            let ext = '.txt';
+            if (lastDotIndex !== -1) {
+                filename = file.name.substring(0, lastDotIndex);
+                ext = file.name.substring(lastDotIndex).toLowerCase();
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('codeEditor').value = e.target.result;
+                document.getElementById('filename').value = filename;
+                setDropdownExtension(ext);
+                updatePreview();
+                showToast("File loaded!");
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // ============================================================
+        //  12. HISTORY
+        // ============================================================
+        function loadLogToEditor(id) {
+            const target = historyData.find(x => x.id === id);
+            if (!target) return;
+            document.getElementById('codeEditor').value = target.code;
+            document.getElementById('filename').value = target.filename;
+            setDropdownExtension(target.ext);
+            updatePreview();
+            showToast("Loaded from history!");
+            toggleSidebar();
+        }
+
+        function addLog(name, ext, code, type) {
+            const log = {
+                id: Date.now(),
+                filename: name,
+                ext: ext,
+                code: code,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                type: type
+            };
+            historyData.unshift(log);
+            saveState();
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('historyList');
+            container.innerHTML = "";
+            if (!historyData.length) {
+                container.innerHTML = `<div class="empty-state">No logs found.</div>`;
+                return;
+            }
+            historyData.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "history-item";
+                div.innerHTML = `
+                        <div class="history-info" onclick="loadLogToEditor(${item.id})">
+                            <div class="history-name">${item.filename}${item.ext}<span class="history-tag">${item.type}</span></div>
+                            <div class="history-time">${item.time}</div>
+                        </div>
+                        <div class="history-controls">
+                            <button class="btn-icon btn-dl-item" onclick="triggerDownloadFromItem(${item.id})">📥</button>
+                            <button class="btn-icon btn-del-item" onclick="deleteLog(${item.id})">❌</button>
+                        </div>
+                    `;
+                container.appendChild(div);
+            });
+        }
+
+        function triggerDownloadFromItem(id) {
+            const target = historyData.find(x => x.id === id);
+            if (target) triggerDownload(target.filename, target.ext, target.code);
+        }
+
+        function deleteLog(id) {
+            if (confirm("Delete this log?")) {
+                historyData = historyData.filter(x => x.id !== id);
+                saveState();
+                renderHistory();
+            }
+        }
+
+        function saveState() { localStorage.setItem('cs_pwa_logs', JSON.stringify(historyData)); }
+
+        function loadHistory() {
+            const data = localStorage.getItem('cs_pwa_logs');
+            if (data) historyData = JSON.parse(data);
+            renderHistory();
+        }
+
+        // ============================================================
+        //  13. DOWNLOAD / SNAPSHOT / BACKUP
+        // ============================================================
+        function downloadFile() {
+            const code = document.getElementById('codeEditor').value;
+            let filename = document.getElementById('filename').value.trim() || "untitled";
+            const ext = document.getElementById('extension').value;
+            if (!code.trim()) { showToast("Canvas is empty!", true); return; }
+            triggerDownload(filename, ext, code);
+            addLog(filename, ext, code, "Downloaded");
+        }
+
+        function createSnapshot() {
+            const code = document.getElementById('codeEditor').value;
+            let filename = document.getElementById('filename').value.trim() || "untitled";
+            const ext = document.getElementById('extension').value;
+            if (!code.trim()) { showToast("Canvas is empty!", true); return; }
+            addLog(filename, ext, code, "Snapshot");
+            showToast("Snapshot saved!");
+        }
+
+        function triggerDownload(name, extension, content) {
+            const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = name + extension;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
+        function exportBackup() {
+            if (!historyData.length) { showToast("No logs to export.", true); return; }
+            triggerDownload("backup_" + Date.now(), ".json", JSON.stringify(historyData));
+        }
+
+        function triggerImport() { document.getElementById('fileInput').click(); }
+
+        function importBackup(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const parsed = JSON.parse(evt.target.result);
+                    if (Array.isArray(parsed)) {
+                        historyData = [...parsed, ...historyData];
+                        saveState();
+                        renderHistory();
+                        showToast("Imported successfully!");
+                    }
+                } catch (err) { showToast("Invalid backup file.", true); }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        }
+
+        // ============================================================
+        //  14. FIXER MODAL
+        // ============================================================
+        function openFixer() {
+            document.getElementById('fixerOverlay').classList.add('show');
+            fixerFiles = [];
+            renderFixerFileList();
+            updateFixerStatus();
+            // reset input
+            document.getElementById('fixerFileInput').value = '';
+        }
+
+        function closeFixer() {
+            document.getElementById('fixerOverlay').classList.remove('show');
+            fixerFiles = [];
+            renderFixerFileList();
+            updateFixerStatus();
+        }
+
+        function setupFixerDropZone() {
+            const zone = document.getElementById('dropZoneFixer');
+            const input = document.getElementById('fixerFileInput');
+
+            zone.addEventListener('click', () => input.click());
+
+            input.addEventListener('change', (e) => {
+                const files = Array.from(e.target.files);
+                if (files.length) {
+                    fixerFiles = files;
+                    renderFixerFileList();
+                    updateFixerStatus();
+                }
+            });
+
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                zone.classList.add('drag-over');
+            });
+
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('drag-over');
+            });
+
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('drag-over');
+                const files = Array.from(e.dataTransfer.files);
+                if (files.length) {
+                    fixerFiles = files;
+                    renderFixerFileList();
+                    updateFixerStatus();
+                }
+            });
+        }
+
+        function renderFixerFileList() {
+            const container = document.getElementById('fixerFileList');
+            container.innerHTML = '';
+            if (!fixerFiles.length) {
+                container.innerHTML =
+                '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:4px 0;">No files selected</div>';
+                return;
+            }
+            fixerFiles.forEach(f => {
+                const div = document.createElement('div');
+                div.className = 'fixer-file-item';
+                const size = (f.size / 1024).toFixed(1);
+                div.innerHTML =
+                    `<span class="name">📄 ${f.name}</span><span class="size">${size} KB</span>`;
+                container.appendChild(div);
+            });
+        }
+
+        function updateFixerStatus() {
+            const el = document.getElementById('fixerStatus');
+            el.textContent = `${fixerFiles.length} file(s) selected`;
+            el.className = 'fixer-status';
+        }
+
+        // ============================================================
+        //  15. PROCESS FIXER FILES → ZIP
+        // ============================================================
+        async function processFixerFiles() {
+            if (!fixerFiles.length) {
+                alert('Pehle files drag ya select karein!');
+                return;
+            }
+
+            const statusEl = document.getElementById('fixerStatus');
+            statusEl.textContent = '⏳ Processing...';
+            statusEl.className = 'fixer-status';
+
+            try {
+                const zip = new JSZip();
+
+                for (let i = 0; i < fixerFiles.length; i++) {
+                    const file = fixerFiles[i];
+                    const text = await file.text();
+                    // Replace non-breaking spaces with normal spaces
+                    const cleaned = text.replace(/\u00A0/g, ' ');
+                    // Keep original extension
+                    zip.file('fixed_' + file.name, cleaned);
+                }
+
+                const content = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(content);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'fixed_files.zip';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+                statusEl.textContent = `✅ Done! ${fixerFiles.length} file(s) fixed & downloaded.`;
+                statusEl.className = 'fixer-status done';
+                showToast(`ZIP with ${fixerFiles.length} fixed files downloaded!`);
+
+                // Reset after a moment
+                setTimeout(() => {
+                    fixerFiles = [];
+                    renderFixerFileList();
+                    updateFixerStatus();
+                }, 3000);
+
+            } catch (err) {
+                statusEl.textContent = '❌ Error: ' + err.message;
+                statusEl.className = 'fixer-status error';
+                showToast('Processing failed.', true);
+            }
+        }
+
+        // ============================================================
+        //  16. PWA INSTALL (placeholder)
+        // ============================================================
+        document.getElementById('installApp')?.addEventListener('click', () => {
+            showToast('PWA installation not configured in this demo.');
+        });
+
+        // ============================================================
+        //  17. KEYBOARD SHORTCUT: ESC to close sidebar / fixer
+        // ============================================================
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (document.getElementById('fixerOverlay').classList.contains('show')) {
+                    closeFixer();
+                } else if (document.getElementById('sidebarDrawer').classList.contains('open')) {
+                    toggleSidebar();
+                }
+            }
+        });
+
+        console.log('🚀 DevCode Saver & Fixer Pro loaded.');
+        console.log('🧹 Drop any text file into the Fixer to remove non-breaking spaces.');
+    </script>
 
 </body>
-</html>
+    </html>
